@@ -23,7 +23,7 @@ odoo.define('pos_order_load', function (require) {
     var gui = require('point_of_sale.gui');
     var models = require('point_of_sale.models');
     var screens = require('point_of_sale.screens');
-    var Model = require('web.DataModel');
+    var rpc = require('web.rpc');
 
     var utils = require('web.utils');
     var round_pr = utils.round_precision;
@@ -169,9 +169,12 @@ odoo.define('pos_order_load', function (require) {
                 self.gui.show_screen('products');
             });
             this.$el.find('span.button.validate').click(function(){
-                var orderModel = new Model('pos.order');
-                return orderModel.call('unlink', [[self.current_order_id]])
-                    .then(function (result) {
+                var orderModel = rpc.query({
+                    model: 'pos.order',
+                    method: 'unlink',
+                    args: [self.current_order_id],
+                });
+                return orderModel.then(function (result) {
                         self.gui.show_screen('products');
                     }).fail(function (error, event){
                         if (parseInt(error.code) === 200) {
@@ -234,9 +237,12 @@ odoo.define('pos_order_load', function (require) {
 
         load_order: function(order_id) {
             var self = this;
-            var orderModel = new Model(this.model);
-            return orderModel.call('load_order', [order_id])
-                .then(function (result) {
+            var orderModel = rpc.query({
+                model: this.model,
+                method: 'load_order',
+                args: [order_id],
+            });
+            return orderModel.then(function (result) {
                     var order = self.pos.get('selectedOrder');
                     order = self.load_order_fields(order, result);
                     order.orderlines.reset();
@@ -302,9 +308,12 @@ odoo.define('pos_order_load', function (require) {
 
         load_orders: function(query) {
             var self = this;
-            var orderModel = new Model(this.model);
-            return orderModel.call('search_read_orders', [query || ''])
-                .then(function (result) {
+            var orderModel = rpc.query({
+                model: this.model,
+                method: 'search_read_orders',
+                args: [query || ''],
+            })
+            return orderModel.then(function (result) {
                     self.render_list(result);
                 }).fail(function (error, event){
                     if (parseInt(error.code) === 200) {
@@ -334,8 +343,10 @@ odoo.define('pos_order_load', function (require) {
         },
 
         on_click_draft_order: function(event){
+            this.$('.order-list .highlight').removeClass('highlight');
             this.current_order_id = parseInt(event.target.parentNode.dataset.orderId);
             this.load_order(this.current_order_id);
+            $(event.target.parentNode).addClass('highlight');
         },
 
         render_list: function(orders){
